@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "BrugLevelCustomizer",
   "resources": {
-    "hash": "sha256-5bnkNtNYwXZ/Wm6hqQzGt5C5fEpYa25WNdt3R9vhXos=",
+    "hash": "sha256-WwMtI3aDHMtq5wOHl5c/qBdILOAXyZEbb+yDd+YTX2E=",
     "jsModuleNative": {
       "dotnet.native.8.0.0.gzoihb8loj.js": "sha256-LjLDIz9+J7uuiwMlQ4HbNx2BnSpphOtO2MwkoI28vdI="
     },
@@ -17,7 +17,7 @@
       "icudt_no_CJK.dat": "sha256-L7sV7NEYP37/Qr2FPCePo5cJqRgTXRwGHuwF5Q+0Nfs="
     },
     "assembly": {
-      "BrugLevelCustomizer.wasm": "sha256-QXtl3WB3WT9/0W1AA0K3YByCeDQc6XcEEcJshZum3lE=",
+      "BrugLevelCustomizer.wasm": "sha256-ib3zWBbFYDSoL2wFdhcsyj+7Ad9HLDcz0/Uob3q7JJQ=",
       "Microsoft.AspNetCore.Components.Forms.wasm": "sha256-2nTE7xIjIqqDRFhRSyD/0OaBW4xvomBEGMZPKpzy7gY=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-40nwWLskTsZIskHnLUR+O+wxWTuL1/WHeFOA8nHglmM=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-CbC2hMFFX2cXjyUI5S5dfVukmXEpIXg78daGKnah9IU=",

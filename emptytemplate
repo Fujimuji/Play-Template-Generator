@@ -167,6 +167,8 @@ variables
 		66: QEffAbi
 		67: QLockE
 		68: QEffLockC
+		78: WSPioneerTimeout
+		79: WSPioneerTime
 		80: WSLBColor
 		81: WSLBMultiColor
 		82: WSAbilityEffectDisplay
@@ -343,6 +345,8 @@ subroutines
 	63: Black_Hole_Effect
 	64: EmpowerPunch
 	65: PreventEmpowerCheese
+	66: Shootable_Orb_Effect
+	68: Shootable_Time_Effect
 	99: MissionCompeltionistDreset
 }
 
@@ -396,38 +400,23 @@ rule("MAP DATA")
 		Subroutine;
 		MapData1;
 	}
-
-	actions
-	{
-		first data
-	}
 }
 
-rule("MAP DATA SPLIT 1")
+disabled rule("MAP DATA SPLIT 1")
 {
 	event
 	{
 		Subroutine;
 		MapData2;
 	}
-
-	actions
-	{
-		second data
-	}
 }
 
-rule("MAP DATA SPLIT 2")
+disabled rule("MAP DATA SPLIT 2")
 {
 	event
 	{
 		Subroutine;
 		MapData3;
-	}
-
-	actions
-	{
-		third data
 	}
 }
 
@@ -450,9 +439,10 @@ rule("GLOBAL HUD - LEVEL NAMES & COLORS & INITIATE MAP   ----   CUSTOMIZE")
 		Call Subroutine(MapData3);
 		If(Global.CPposition);
 			"Customize Level Names"
-			cstlvlnam
+			Global.LvlName = Array(Custom String("Diverge / Single"), Custom String("Level 1"), Custom String("Level 2"), Custom String(
+				"Level 3"), Custom String("Level 4"), Custom String("Level 5"));
 			"Customize Level Colors"
-			cstlvlclr
+			Global.LvlColors = Array(Color(Red), Color(Green), Color(Sky Blue), Color(Yellow), Color(Rose), Color(Purple));
 			"Customize Leaderboard Multi Colors"
 			Global.LvlColors2 = Array(Color(White), Color(White), Color(White), Color(White), Color(White), Color(White));
 			"Customize Top Left Info"
@@ -539,7 +529,26 @@ rule("GLOBAL LEVEL SELECT ICONS   -----------------------------------------   CU
 
 	actions
 	{
-		lvlSelect data
+		Skip(-2 + Global.LevelCounter * 2);
+		"Level 1"
+		Create Icon(Filtered Array(All Players(All Teams), Current Array Element.CPData[13]),
+			Global.CPposition[Global.Detector1] + Up * 1.750, Flag, Visible To, Global.LvlColors[Global.LevelCounter], True);
+		Abort;
+		"Level 2"
+		Create Icon(Filtered Array(All Players(All Teams), Current Array Element.CPData[13]),
+			Global.CPposition[Global.Detector1] + Up * 1.750, Flag, Visible To, Global.LvlColors[Global.LevelCounter], True);
+		Abort;
+		"Level 3"
+		Create Icon(Filtered Array(All Players(All Teams), Current Array Element.CPData[13]),
+			Global.CPposition[Global.Detector1] + Up * 1.750, Flag, Visible To, Global.LvlColors[Global.LevelCounter], True);
+		Abort;
+		"Level 4"
+		Create Icon(Filtered Array(All Players(All Teams), Current Array Element.CPData[13]),
+			Global.CPposition[Global.Detector1] + Up * 1.750, Flag, Visible To, Global.LvlColors[Global.LevelCounter], True);
+		Abort;
+		"Level 5"
+		Create Icon(Filtered Array(All Players(All Teams), Current Array Element.CPData[13]),
+			Global.CPposition[Global.Detector1] + Up * 1.750, Flag, Visible To, Global.LvlColors[Global.LevelCounter], True);
 	}
 }
 
@@ -570,7 +579,30 @@ rule("PLAYER ICONS   -----------------------------------------------------------
 
 	actions
 	{
-		playerIcon data
+		Skip(Event Player.Level * 2);
+		"Diverge / Single / Pioneer"
+		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
+			Event Player.Pioneer ? Color(Orange) : Global.LvlColors[Event Player.Level], True);
+		Abort;
+		"Level 1"
+		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
+			Global.LvlColors[Event Player.Level], True);
+		Abort;
+		"Level 2"
+		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
+			Global.LvlColors[Event Player.Level], True);
+		Abort;
+		"Level 3"
+		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
+			Global.LvlColors[Event Player.Level], True);
+		Abort;
+		"Level 4"
+		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
+			Global.LvlColors[Event Player.Level], True);
+		Abort;
+		"Level 5"
+		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
+			Global.LvlColors[Event Player.Level], True);
 	}
 }
 
@@ -865,7 +897,7 @@ rule("Generate Regular Map Data sub")
 						Modify Global Variable At Index(QIndex, Global.Detector1, Append To Array, Global.Detector2);
 					End;
 					If(Is True For Any(Global.QLockE[Global.Detector1], Current Array Element) && Is True For Any(
-						Global.QEffState[Global.Detector1][Global.Detector2], !Current Array Element || Current Array Element == 2 || (
+						Global.QEffState[Global.Detector1][Global.Detector2], Current Array Element == 2 || Current Array Element == 10 || (
 						Global.QCPdataRec[19] ? Current Array Element == 4 : False)));
 						Global.Detector3[Global.Detector2] = True;
 					Else If(Array Contains(Global.QEffState[Global.Detector1], False));
@@ -2195,7 +2227,7 @@ rule("Mission Seismic Slam")
 		"Ability Count"
 		If(Event Player.CPData[21]);
 			If(Event Player.Pioneer == 3);
-				Abort If(Event Player.PioneerGenerate);
+				disabled Abort If(Event Player.PioneerGenerate);
 				Event Player.AbilityCount += Forward;
 			Else If(Event Player.RunState < 3);
 				Skip If(Z Component Of(Event Player.AbilityCount), 2);
@@ -2473,15 +2505,16 @@ rule("Effect Create sub    -------------------------------   CUSTOMIZE")
 
 	actions
 	{
-		If(Event Player.Efftype[Event Player.Effinitiate]);
+		If(Event Player.Efftype[Event Player.Effinitiate] || (
+			!Event Player.Efftype[Event Player.Effinitiate] && Event Player.Effstate[Event Player.Effinitiate] == 0));
 			If(Event Player.Effstate[Event Player.Effinitiate] < 4);
 				If(Is True For Any(Event Player.Effstate[Event Player.Effinitiate], Current Array Element == 1 || Current Array Element == 3));
 					Create Effect(Event Player, Sphere, Event Player.Effstate[Event Player.Effinitiate] == 1 ? Color(Red) : Color(Lime Green),
 						Event Player.Effpos[Event Player.Effinitiate], Event Player.Effrad[Event Player.Effinitiate], None);
 				Else;
 					Create Effect(Event Player.Effvisible[Evaluate Once(Event Player.Effinitiate)] ? Empty Array : Event Player, Sphere,
-						Event Player.Effstate[Event Player.Effinitiate] ? Color(White) : (Event Player.Efftim[Event Player.Effinitiate] > 0 ? Color(
-						Purple) : Color(Sky Blue)), Event Player.Effpos[Event Player.Effinitiate], Event Player.Effrad[Event Player.Effinitiate],
+						Event Player.Effstate[Event Player.Effinitiate] ? Color(White) : (!Event Player.Efftype[Event Player.Effinitiate] ? Color(
+						Yellow) : Color(Sky Blue)), Event Player.Effpos[Event Player.Effinitiate], Event Player.Effrad[Event Player.Effinitiate],
 						Visible To);
 				End;
 			Else If(Event Player.Effstate[Event Player.Effinitiate] == 4);
@@ -2494,6 +2527,9 @@ rule("Effect Create sub    -------------------------------   CUSTOMIZE")
 			Else If(Event Player.Effstate[Event Player.Effinitiate] == 7);
 				Create Effect(Event Player, Orb, Color(Black), Event Player.Effpos[Event Player.Effinitiate],
 					Event Player.Effrad[Event Player.Effinitiate], None);
+			Else If(Event Player.Effstate[Event Player.Effinitiate] == 10);
+				Create Effect(Event Player.Effvisible[Evaluate Once(Event Player.Effinitiate)] ? Empty Array : Event Player, Sphere, Color(
+					Turquoise), Event Player.Effpos[Event Player.Effinitiate], Event Player.Effrad[Event Player.Effinitiate], Visible To);
 			Else;
 				Abort If(Event Player.Effstate[Event Player.Effinitiate + True] != 9);
 				Create Beam Effect(Event Player, Bad Beam, Event Player.Effpos[Event Player.Effinitiate],
@@ -2511,17 +2547,19 @@ rule("Effect Create sub    -------------------------------   CUSTOMIZE")
 			End;
 		End;
 		Modify Player Variable At Index(Event Player, Elements, False, Append To Array, Last Created Entity);
-		Abort If(Is True For Any(Event Player.Effstate[Event Player.Effinitiate],
-			Current Array Element == 1 || Current Array Element > 6));
-		If(Event Player.Effstate[Event Player.Effinitiate] > 1 && Event Player.Effstate[Event Player.Effinitiate] != 4);
+		Abort If(Is True For Any(Event Player.Effstate[Event Player.Effinitiate], Current Array Element == 1 || (
+			Current Array Element > 6 && Current Array Element != 10)));
+		If(
+			Event Player.Effstate[Event Player.Effinitiate] > 1 && Event Player.Effstate[Event Player.Effinitiate] != 4 && Event Player.Effstate[Event Player.Effinitiate] != 10);
 			Abort If(Event Player.Efftim[Event Player.Effinitiate] == 11 && Event Player.Effstate[Event Player.Effinitiate] > 2);
 			Create In-World Text(Event Player.Effvisible[Evaluate Once(Event Player.Effinitiate)] ? Empty Array : Event Player, Custom String(
-				"{0}{1}{0}", Event Player.Efftim[Event Player.Effinitiate] < 0 ? Custom String("*") : Custom String(""), Absolute Value(
-				Event Player.Efftim[Event Player.Effinitiate]) == 11 ? Custom String(" NC") : Custom String(" {0}{1}{2} ", First Of(
-				Event Player.Effabi[Event Player.Effinitiate]) ? Ability Icon String(Hero Of(Event Player), Button(Secondary Fire))
-				: Custom String(""), Event Player.Effabi[Event Player.Effinitiate][1] ? Ability Icon String(Hero Of(Event Player), Button(
-				Ability 2)) : Custom String(""), Last Of(Event Player.Effabi[Event Player.Effinitiate]) ? Ability Icon String(Hero Of(
-				Event Player), Button(Ability 1)) : Custom String(""))), Evaluate Once(Event Player.Efftype[Event Player.Effinitiate])
+				"{0}{1}{0}", Event Player.Efftim[Event Player.Effinitiate] < 0 ? Custom String("*") : Custom String(""),
+				Global.WSAbilityEffectDisplay ? (Absolute Value(Event Player.Efftim[Event Player.Effinitiate]) == 11 ? Custom String(" NC")
+				: Custom String(" {0}{1}{2} ", First Of(Event Player.Effabi[Event Player.Effinitiate]) ? Ability Icon String(Hero Of(
+				Event Player), Button(Secondary Fire)) : Custom String(""),
+				Event Player.Effabi[Event Player.Effinitiate][1] ? Ability Icon String(Hero Of(Event Player), Button(Ability 2))
+				: Custom String(""), Last Of(Event Player.Effabi[Event Player.Effinitiate]) ? Ability Icon String(Hero Of(Event Player),
+				Button(Ability 1)) : Custom String(""))) : Custom String("")), Evaluate Once(Event Player.Efftype[Event Player.Effinitiate])
 				? Evaluate Once(Event Player.Effpos[Event Player.Effinitiate]) + Direction Towards(Evaluate Once(
 				Event Player.Effpos[Event Player.Effinitiate]), Eye Position(Event Player)) * Evaluate Once(
 				Event Player.Effrad[Event Player.Effinitiate]) : Evaluate Once(Event Player.Effpos[Event Player.Effinitiate] * (
@@ -2533,10 +2571,28 @@ rule("Effect Create sub    -------------------------------   CUSTOMIZE")
 			Create In-World Text(Event Player.Effvisible[Evaluate Once(Event Player.Effinitiate)] ? Empty Array : Event Player, Custom String(
 				"{0} {1} {0}", Event Player.Efftim[Event Player.Effinitiate] < 0 ? Custom String("*") : Custom String(""), Icon String(Flag)),
 				Event Player.Effpos[Event Player.Effinitiate] + Up * 1.750, 1.300, Do Not Clip, Visible To, Color(White), Default Visibility);
+		Else If(Event Player.Effstate[Event Player.Effinitiate] == 10);
+			Create In-World Text(Event Player.Effvisible[Evaluate Once(Event Player.Effinitiate)] ? Empty Array : Event Player, Custom String(
+				"{0}{1}{0}\nSHOOT ME", Event Player.Efftim[Event Player.Effinitiate] < 0 ? Custom String("*") : Custom String(""),
+				Global.WSAbilityEffectDisplay ? (Absolute Value(Event Player.Efftim[Event Player.Effinitiate]) == 11 ? Custom String(" NC")
+				: Custom String(" {0}{1}{2} ", First Of(Event Player.Effabi[Event Player.Effinitiate]) ? Ability Icon String(Hero Of(
+				Event Player), Button(Secondary Fire)) : Custom String(""),
+				Event Player.Effabi[Event Player.Effinitiate][1] ? Ability Icon String(Hero Of(Event Player), Button(Ability 2))
+				: Custom String(""), Last Of(Event Player.Effabi[Event Player.Effinitiate]) ? Ability Icon String(Hero Of(Event Player),
+				Button(Ability 1)) : Custom String(""))) : Custom String("")), Evaluate Once(Event Player.Efftype[Event Player.Effinitiate])
+				? Evaluate Once(Event Player.Effpos[Event Player.Effinitiate]) + Direction Towards(Evaluate Once(
+				Event Player.Effpos[Event Player.Effinitiate]), Eye Position(Event Player)) * Evaluate Once(
+				Event Player.Effrad[Event Player.Effinitiate]) : Evaluate Once(Event Player.Effpos[Event Player.Effinitiate] * (
+				Left + Forward)) + Update Every Frame(Vector(False, Max(Y Component Of(Eye Position(Event Player)), Evaluate Once(
+				Y Component Of(Event Player.Effpos[Event Player.Effinitiate]))), False)), Absolute Value(
+				Event Player.Efftim[Event Player.Effinitiate]) == 11 ? 0.900 : 1.500, Clip Against Surfaces, Visible To and Position, Color(
+				White), Default Visibility);
 		Else;
 			Abort If(!Event Player.Efftim[Event Player.Effinitiate]);
-			Create In-World Text(Event Player.Effvisible[Evaluate Once(Event Player.Effinitiate)] ? Empty Array : Event Player, Custom String(
-				" {0}{1} s", Event Player.Efftim[Event Player.Effinitiate] > 0 ? Custom String("+") : Custom String(""),
+			Create In-World Text(Event Player.Effvisible[Evaluate Once(Event Player.Effinitiate)] ? Empty Array : Event Player,
+				!Event Player.Efftype ? Custom String(" {0}{1} s\nSHOOT ME", Event Player.Efftim[Event Player.Effinitiate] > 0 ? Custom String(
+				"+") : Custom String(""), Event Player.Efftim[Event Player.Effinitiate] + 0.001) : Custom String(" {0}{1} s",
+				Event Player.Efftim[Event Player.Effinitiate] > 0 ? Custom String("+") : Custom String(""),
 				Event Player.Efftim[Event Player.Effinitiate] + 0.001), Evaluate Once(Event Player.Efftype[Event Player.Effinitiate])
 				? Evaluate Once(Event Player.Effpos[Event Player.Effinitiate]) : Evaluate Once(
 				Event Player.Effpos[Event Player.Effinitiate] * (Left + Forward)) + Update Every Frame(Vector(False, Max(Y Component Of(
@@ -2560,8 +2616,9 @@ rule("Effect Detect")
 	conditions
 	{
 		Event Player.CPData[8] == True;
-		Is True For Any(Event Player.Effpos, Current Array Element && !Event Player.Effvisible[Current Array Index] && (Distance Between(
-			Position Of(Event Player) + Vector(False, 0.450, False),
+		Is True For Any(Event Player.Effpos, Current Array Element && !(Event Player.Effstate[Current Array Index] == 10 || (
+			Event Player.Effstate[Current Array Index] == 0 && Event Player.Efftype[Current Array Index] == False))
+			&& !Event Player.Effvisible[Current Array Index] && (Distance Between(Position Of(Event Player) + Vector(False, 0.450, False),
 			Event Player.Efftype[Current Array Index] ? Current Array Element : Current Array Element * Vector(True, False, True) + Vector(
 			False, Max(Y Component Of(Position Of(Event Player)) + 0.450, Y Component Of(Current Array Element)), False))
 			< Event Player.EffradD[Current Array Index] || Distance Between(Position Of(Event Player) + Vector(False, 1.250, False),
@@ -2599,6 +2656,11 @@ rule("Effect Detect")
 			Break;
 			Call Subroutine(Black_Hole_Effect);
 			Break;
+			disabled End;
+			disabled End;
+			disabled End;
+			disabled Call Subroutine(Shootable_Orb_Effect);
+			Break;
 		End;
 		Event Player.Effdetect = False;
 		Wait(0.016, Ignore Condition);
@@ -2627,7 +2689,7 @@ rule("Time / Ability Effect sub")
 						If(Absolute Value(Event Player.Efftim[Event Player.Effactual]) % 29 == 0 && !Event Player.EmpowerStats[4]);
 							Call Subroutine(EmpowerPunch);
 						End;
-						Skip If(Event Player.Efftim[Event Player.Effactual] == 11, True);
+						Skip If(Event Player.Efftim[Event Player.Effactual] == 11, 1);
 						Start Rule(EffectAbilities, Restart Rule);
 					Else;
 						Event Player.Effvisible[Count Of(Event Player.Efftype)] += Event Player.Efftim[Event Player.Effactual];
@@ -2642,12 +2704,97 @@ rule("Time / Ability Effect sub")
 				If(Absolute Value(Event Player.Efftim[Event Player.Effactual]) % 29 == 0 && !Event Player.EmpowerStats[4]);
 					Call Subroutine(EmpowerPunch);
 				End;
-				Skip If(Event Player.Efftim[Event Player.Effactual] == 11, True);
+				Skip If(Event Player.Efftim[Event Player.Effactual] == 11, 1);
 				Start Rule(EffectAbilities, Restart Rule);
 			Else;
 				Event Player.Effvisible[Count Of(Event Player.Efftype)] += Event Player.Efftim[Event Player.Effactual];
 			End;
 			Call Subroutine(EffectLock);
+	}
+}
+
+rule("Orb Shoot Detect")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Event Player.CPData[8] == True;
+		Is Firing Primary(Event Player) == True;
+		"Disable to make it work inside of cp"
+		Distance Between(Position Of(Event Player), Event Player.CPData[3]) > Event Player.CPData[4] + 0.100;
+		Is True For Any(Event Player.Effpos, Current Array Element && (Event Player.Effstate[Current Array Index] == 10 || (
+			Event Player.Effstate[Current Array Index] == False && Event Player.Efftype[Current Array Index] == False))
+			&& !Event Player.Effvisible[Current Array Index] && Distance Between(Ray Cast Hit Position(Eye Position(Event Player),
+			Eye Position(Event Player) + Facing Direction Of(Event Player) * Distance Between(Eye Position(Event Player),
+			Current Array Element), Null, Event Player, False), Current Array Element) <= Event Player.EffradD[Current Array Index])
+			== True;
+		Event Player.Effdetect == False;
+		Event Player.Shift == False;
+	}
+
+	actions
+	{
+		Event Player.Effdetect = Index Of Array Value(Event Player.Effpos, First Of(Filtered Array(Event Player.Effpos,
+			Current Array Element && (Event Player.Effstate[Current Array Index] == 10 || (
+			Event Player.Effstate[Current Array Index] == False && Event Player.Efftype[Current Array Index] == False))
+			&& !Event Player.Effvisible[Index Of Array Value(Event Player.Effpos, Current Array Element)] && Distance Between(
+			Ray Cast Hit Position(Eye Position(Event Player), Eye Position(Event Player) + Facing Direction Of(Event Player)
+			* Distance Between(Eye Position(Event Player), Current Array Element), Null, Event Player, False), Current Array Element)
+			<= Event Player.EffradD[Index Of Array Value(Event Player.Effpos, Current Array Element)]))) + True;
+		Event Player.Effactual = Event Player.Effdetect - True;
+		"Disable to not wait for the bullet to reach"
+		Wait(Distance Between(Eye Position(Event Player), Event Player.Effpos[Event Player.Effactual]) / 80, Ignore Condition);
+		If(Event Player.Effstate[Event Player.Effactual] == False);
+			Call Subroutine(Shootable_Time_Effect);
+		Else;
+			Call Subroutine(Shootable_Orb_Effect);
+		End;
+		Event Player.Effdetect = False;
+		Wait(0.016, Ignore Condition);
+	}
+}
+
+rule("Shootable Orb Effect sub")
+{
+	event
+	{
+		Subroutine;
+		Shootable_Orb_Effect;
+	}
+
+	actions
+	{
+		Play Effect(Event Player, Ring Explosion Sound, Color(White), Event Player, 69);
+		Event Player.Effvisible[Event Player.Effactual] = True;
+		Skip If(Event Player.Efftim[Event Player.Effactual] == 11, True);
+		Start Rule(EffectAbilities, Restart Rule);
+		If(Absolute Value(Event Player.Efftim[Event Player.Effactual]) % 29 == 0 && !Event Player.EmpowerStats[4]);
+			Call Subroutine(EmpowerPunch);
+		End;
+		Call Subroutine(EffectLock);
+	}
+}
+
+rule("Shootable Time Effect sub")
+{
+	event
+	{
+		Subroutine;
+		Shootable_Time_Effect;
+	}
+
+	actions
+	{
+		Play Effect(Event Player, Ring Explosion Sound, Color(White), Event Player, 69);
+		Event Player.Effvisible[Event Player.Effactual] = True;
+		Event Player.Effvisible[Count Of(Event Player.Efftype)] += Event Player.Efftim[Event Player.Effactual];
+		Call Subroutine(EffectLock);
 	}
 }
 
@@ -2666,6 +2813,7 @@ rule("Permeation Effect sub")
 		End;
 		Skip If(Event Player.Efftim[Event Player.Effactual] == 11, True);
 		Start Rule(EffectAbilities, Restart Rule);
+		Skip If(Absolute Value(Event Player.Efftim[Event Player.Effactual] % 31 == 0), 6);
 		Play Effect(Event Player, Moira Fade Disappear Sound, Null, Event Player, 80);
 		Disable Movement Collision With Environment(Event Player, True);
 		Event Player.Effdetect = Array(Event Player.Effpos[Event Player.Effactual] * Vector(True, False, True), Y Component Of(
@@ -3285,7 +3433,7 @@ rule("Pioneer CP Change sub")
 			End;
 		Else If(Event Player.Pioneer == 3 && Event Player.Checkpoint != Count Of(Global.CPposition) - True);
 			If(Number Of Players(All Teams) > 1);
-				Event Player.PioneerTime = -210;
+				Event Player.PioneerTime = Global.WSPioneerTimeout;
 				Wait(0.048, Ignore Condition);
 				Event Player.Pioneer = 4;
 			Else;
@@ -3449,7 +3597,8 @@ rule("Pioneer Force")
 	actions
 	{
 		"This Value used for Repeat Pioneer & Pioneering -Timeout"
-		Event Player.PioneerTime = Event Player.Pioneer > -3 ? 0 : (Event Player.Pioneer == -3 ? 150 : -210);
+		Event Player.PioneerTime = Event Player.Pioneer > -3 ? 0 : (
+			Event Player.Pioneer == -3 ? Global.WSPioneerTime : Global.WSPioneerTimeout);
 		If(Event Player.Pioneer == -3);
 			Event Player.Checkpoint = Count Of(Global.CPposition) - True;
 			Cancel Primary Action(Event Player);
@@ -3982,19 +4131,19 @@ rule("Effect Preview sub   |   Interact + Forwards / Backwards")
 			Event Player.EffectPreview[Event Player.LocalC[3] - True])), False)) : Event Player.EffectPreview, 10);
 		Create HUD Text(Event Player, Custom String(" \n Effect Details:\n {0}\n                ",
 			Event Player.Effstate[Event Player.LocalC[3] - True] ? (
-			Event Player.Effstate[Event Player.LocalC[3] - True] == 1 ? Custom String("Death\n Kills you") : (
-			Event Player.Effstate[Event Player.LocalC[3] - True] == 2 ? Custom String("Abilities: {0}{1}\n Changes current abilities{2}",
-			Absolute Value(Event Player.Efftim[Event Player.LocalC[3] - True]) == 11 ? Custom String("No change") : Custom String(
-			"{0}{1}{2}", First Of(Event Player.Effabi[Event Player.LocalC[3] - True]) ? Ability Icon String(Hero Of(Event Player), Button(
-			Secondary Fire)) : Custom String(""), Event Player.Effabi[Event Player.LocalC[3] - True][1] ? Ability Icon String(Hero Of(
-			Event Player), Button(Ability 2)) : Custom String(""), Last Of(Event Player.Effabi[Event Player.LocalC[3] - True])
-			? Ability Icon String(Hero Of(Event Player), Button(Ability 1)) : Custom String("")),
-			Event Player.Efftim[Event Player.LocalC[3] - True] < 0 ? Custom String(" \n Resets Cooldowns") : Custom String(""),
-			Event Player.Efftim[Event Player.LocalC[3] - True] % 7 == False ? Custom String("\n    Need to stall{0}",
+			Event Player.Effstate[Event Player.LocalC[3] - True] == 1 ? Custom String("Death\n Kills you") : (Is True For Any(
+			Event Player.Effstate[Event Player.LocalC[3] - True], Current Array Element == 2 || Current Array Element == 10)
+			? Custom String("Abilities: {0}{1}\n Changes current abilities{2}", Absolute Value(
+			Event Player.Efftim[Event Player.LocalC[3] - True]) == 11 ? Custom String("No change") : Custom String("{0}{1}{2}", First Of(
+			Event Player.Effabi[Event Player.LocalC[3] - True]) ? Ability Icon String(Hero Of(Event Player), Button(Secondary Fire))
+			: Custom String(""), Event Player.Effabi[Event Player.LocalC[3] - True][1] ? Ability Icon String(Hero Of(Event Player), Button(
+			Ability 2)) : Custom String(""), Last Of(Event Player.Effabi[Event Player.LocalC[3] - True]) ? Ability Icon String(Hero Of(
+			Event Player), Button(Ability 1)) : Custom String("")), Event Player.Efftim[Event Player.LocalC[3] - True] < 0 ? Custom String(
+			" \n Resets Cooldowns") : Custom String(""), Event Player.Efftim[Event Player.LocalC[3] - True] % 7 == False ? Custom String(
+			"\n    Need to stall{0}", Event Player.Efftim[Event Player.LocalC[3] - True] % 29 == False ? Custom String(
+			"\n    Gives Empowered Punch") : Custom String("")) : Custom String("{0}",
 			Event Player.Efftim[Event Player.LocalC[3] - True] % 29 == False ? Custom String("\n    Gives Empowered Punch")
-			: Custom String("")) : Custom String("{0}", Event Player.Efftim[Event Player.LocalC[3] - True] % 29 == False ? Custom String(
-			"\n    Gives Empowered Punch") : Custom String(""))) : (
-			Event Player.Effstate[Event Player.LocalC[3] - True] == 3 ? Custom String(
+			: Custom String(""))) : (Event Player.Effstate[Event Player.LocalC[3] - True] == 3 ? Custom String(
 			"Abilities: {0}{1}\n Lets you pass\n through environment{2}", Absolute Value(
 			Event Player.Efftim[Event Player.LocalC[3] - True]) == 11 ? Custom String("No change") : Custom String("{0}{1}{2}", First Of(
 			Event Player.Effabi[Event Player.LocalC[3] - True]) ? Ability Icon String(Hero Of(Event Player), Button(Secondary Fire))
@@ -4023,8 +4172,8 @@ rule("Effect Preview sub   |   Interact + Forwards / Backwards")
 			: Custom String("Zipline\n Press/Hold Jump\n to attach\n Jump/Crouch to detach"))))))) : Custom String(
 			"Time Change: {0}\n Changes Time upon\n Completion", Event Player.Efftim[Event Player.LocalC[3] - True] + 0.001)), Null, Null,
 			Left, -7, Array(Color(Sky Blue), Color(Red), Color(White), Color(Lime Green), Color(Orange), Color(Orange), Color(Sky Blue),
-			Color(Gray), Color(Blue), Color(Blue))[Event Player.Effstate[Event Player.LocalC[3] - True]], Null, Null, String and Color,
-			Default Visibility);
+			Color(Gray), Color(Blue), Color(Blue), Color(Turquoise))[Event Player.Effstate[Event Player.LocalC[3] - True]], Null, Null,
+			String and Color, Default Visibility);
 		Event Player.LocalC[4] = Last Text ID;
 		Create Effect(Event Player.Effstate[Event Player.LocalC[3] - True] == 7 ? Event Player : Null, Sphere, Color(Black),
 			Event Player.EffectPreview[Event Player.LocalC[3] - True], Event Player.Effrad[Event Player.LocalC[3] - True],
@@ -4258,7 +4407,7 @@ rule("Death Reset")
 	}
 }
 
-disabled rule("Proximity Invisibility")
+rule("Proximity Invisibility")
 {
 	event
 	{
@@ -4530,36 +4679,6 @@ rule("Server Performance")
 	}
 }
 
-rule("Workshop Settings")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	actions
-	{
-		If(Global.CPposition);
-			"General"
-			Global.WSLBColor = Workshop Setting Toggle(Custom String("1. General"), Custom String("Multilevel Colored texts"), True, 0);
-			Global.WSLBMultiColor = Workshop Setting Toggle(Custom String("1. General"), Custom String("Leaderboard Multi Color"), False, 1);
-			Global.WSAbilityEffectDisplay = Workshop Setting Toggle(Custom String("1. General"), Custom String("Display Effect Abilities"),
-				True, 2);
-			Global.WSFullLB = Workshop Setting Toggle(Custom String("1. General"), Custom String("Full 12 player Leaderboard"), False, 3);
-			Global.WSUpperCancelBulletPunch = Workshop Setting Toggle(Custom String("1. General"), Custom String(
-				"Upper Cancel / Bullet Punch"), True, 4);
-			Global.WSSpectateCancel = Workshop Setting Toggle(Custom String("1. General"), Custom String("Spectate Slam Cancel"), False, 5);
-			Global.WSClearSetFacing = Workshop Setting Toggle(Custom String("1. General"), Custom String(
-				"Set View Angle on CP clear (legacy way)"), False, 6);
-			Global.WSReturnPrevent = Workshop Setting Toggle(Custom String("1. General"), Custom String(
-				"Prevent Returning to CP on Effect Lock"), False, 7);
-			"Enable Completionist"
-			Global.WSCompletionist = Workshop Setting Toggle(Custom String("2. Completionist"), Custom String(
-				" Completionist Mode - Complete every Mission in a path of Diverge"), True, 0);
-			Global.WSUpperCancelBulletPunch = !Global.WSUpperCancelBulletPunch;
-	}
-}
-
 rule("Empower Punch Subroutine")
 {
 	event
@@ -4575,8 +4694,9 @@ rule("Empower Punch Subroutine")
 		Disallow Button(Event Player, Button(Primary Fire));
 		Wait Until(!Event Player.Grace, 2);
 		Event Player.UpperLock = True;
-		Clear Status(Event Player, Invincible);
 		Event Player.EmpowerStats[0] = True;
+		Wait(0.016, Ignore Condition);
+		Clear Status(Event Player, Invincible);
 		"Event Player.EmpowerStats = Array(isEmpowering, powerblockenabled, powerblockcd, punchcd, isEmpowered);"
 		Event Player.EmpowerStats[2] = Ability Cooldown(Event Player, Button(Ability 2));
 		Set Ability Cooldown(Event Player, Button(Ability 2), 0);
@@ -4640,10 +4760,45 @@ rule("Screenshake Fix")
 	conditions
 	{
 		Has Status(Event Player, Invincible) == False;
+		Event Player.EmpowerStats[0] == False;
 	}
 
 	actions
 	{
 		Set Status(Event Player, Null, Invincible, 99999);
+	}
+}
+
+rule("Workshop Settings")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	actions
+	{
+		"Pioneer"
+		Global.WSPioneerTime = Workshop Setting Integer(Custom String("3. Pioneer"), Custom String("Pioneer Time"), 150, 10, 9999, 8);
+		Global.WSPioneerTimeout = Workshop Setting Integer(Custom String("3. Pioneer"), Custom String("Pioneer Timeout"), -210, -9999, -10,
+			9);
+		If(Global.CPposition);
+			"General"
+			Global.WSLBColor = Workshop Setting Toggle(Custom String("1. General"), Custom String("Multilevel Colored texts"), True, 0);
+			Global.WSLBMultiColor = Workshop Setting Toggle(Custom String("1. General"), Custom String("Leaderboard Multi Color"), False, 1);
+			Global.WSAbilityEffectDisplay = Workshop Setting Toggle(Custom String("1. General"), Custom String("Display Effect Abilities"),
+				True, 2);
+			Global.WSFullLB = Workshop Setting Toggle(Custom String("1. General"), Custom String("Full 12 player Leaderboard"), False, 3);
+			Global.WSUpperCancelBulletPunch = Workshop Setting Toggle(Custom String("1. General"), Custom String(
+				"Upper Cancel / Bullet Punch"), True, 4);
+			Global.WSSpectateCancel = Workshop Setting Toggle(Custom String("1. General"), Custom String("Spectate Slam Cancel"), False, 5);
+			Global.WSClearSetFacing = Workshop Setting Toggle(Custom String("1. General"), Custom String(
+				"Set View Angle on CP clear (legacy way)"), False, 6);
+			Global.WSReturnPrevent = Workshop Setting Toggle(Custom String("1. General"), Custom String(
+				"Prevent Returning to CP on Effect Lock"), False, 7);
+			"Enable Completionist"
+			Global.WSCompletionist = Workshop Setting Toggle(Custom String("2. Completionist"), Custom String(
+				" Completionist Mode - Complete every Mission in a path of Diverge"), True, 0);
+			Global.WSUpperCancelBulletPunch = !Global.WSUpperCancelBulletPunch;
 	}
 }
