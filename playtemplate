@@ -87,6 +87,7 @@ settings
 			Doomfist
 			{
 				Power Block Charge Rate: 500%
+				Power Block Cooldown Time: 84%
 			}
 
 			enabled heroes
@@ -347,6 +348,7 @@ subroutines
 	65: PreventEmpowerCheese
 	66: Shootable_Orb_Effect
 	68: Shootable_Time_Effect
+	69: Bounce_Orb_Effect
 	99: MissionCompeltionistDreset
 }
 
@@ -400,23 +402,38 @@ rule("MAP DATA")
 		Subroutine;
 		MapData1;
 	}
+
+	actions
+	{
+		first data
+	}
 }
 
-disabled rule("MAP DATA SPLIT 1")
+rule("MAP DATA SPLIT 1")
 {
 	event
 	{
 		Subroutine;
 		MapData2;
 	}
+
+	actions
+	{
+		second data
+	}
 }
 
-disabled rule("MAP DATA SPLIT 2")
+rule("MAP DATA SPLIT 2")
 {
 	event
 	{
 		Subroutine;
 		MapData3;
+	}
+
+	actions
+	{
+		third data
 	}
 }
 
@@ -439,10 +456,9 @@ rule("GLOBAL HUD - LEVEL NAMES & COLORS & INITIATE MAP   ----   CUSTOMIZE")
 		Call Subroutine(MapData3);
 		If(Global.CPposition);
 			"Customize Level Names"
-			Global.LvlName = Array(Custom String("Diverge / Single"), Custom String("Level 1"), Custom String("Level 2"), Custom String(
-				"Level 3"), Custom String("Level 4"), Custom String("Level 5"));
+			cstlvlnam
 			"Customize Level Colors"
-			Global.LvlColors = Array(Color(Red), Color(Green), Color(Sky Blue), Color(Yellow), Color(Rose), Color(Purple));
+			cstlvlclr
 			"Customize Leaderboard Multi Colors"
 			Global.LvlColors2 = Array(Color(White), Color(White), Color(White), Color(White), Color(White), Color(White));
 			"Customize Top Left Info"
@@ -529,26 +545,7 @@ rule("GLOBAL LEVEL SELECT ICONS   -----------------------------------------   CU
 
 	actions
 	{
-		Skip(-2 + Global.LevelCounter * 2);
-		"Level 1"
-		Create Icon(Filtered Array(All Players(All Teams), Current Array Element.CPData[13]),
-			Global.CPposition[Global.Detector1] + Up * 1.750, Flag, Visible To, Global.LvlColors[Global.LevelCounter], True);
-		Abort;
-		"Level 2"
-		Create Icon(Filtered Array(All Players(All Teams), Current Array Element.CPData[13]),
-			Global.CPposition[Global.Detector1] + Up * 1.750, Flag, Visible To, Global.LvlColors[Global.LevelCounter], True);
-		Abort;
-		"Level 3"
-		Create Icon(Filtered Array(All Players(All Teams), Current Array Element.CPData[13]),
-			Global.CPposition[Global.Detector1] + Up * 1.750, Flag, Visible To, Global.LvlColors[Global.LevelCounter], True);
-		Abort;
-		"Level 4"
-		Create Icon(Filtered Array(All Players(All Teams), Current Array Element.CPData[13]),
-			Global.CPposition[Global.Detector1] + Up * 1.750, Flag, Visible To, Global.LvlColors[Global.LevelCounter], True);
-		Abort;
-		"Level 5"
-		Create Icon(Filtered Array(All Players(All Teams), Current Array Element.CPData[13]),
-			Global.CPposition[Global.Detector1] + Up * 1.750, Flag, Visible To, Global.LvlColors[Global.LevelCounter], True);
+		lvlSelect data
 	}
 }
 
@@ -579,30 +576,7 @@ rule("PLAYER ICONS   -----------------------------------------------------------
 
 	actions
 	{
-		Skip(Event Player.Level * 2);
-		"Diverge / Single / Pioneer"
-		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
-			Event Player.Pioneer ? Color(Orange) : Global.LvlColors[Event Player.Level], True);
-		Abort;
-		"Level 1"
-		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
-			Global.LvlColors[Event Player.Level], True);
-		Abort;
-		"Level 2"
-		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
-			Global.LvlColors[Event Player.Level], True);
-		Abort;
-		"Level 3"
-		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
-			Global.LvlColors[Event Player.Level], True);
-		Abort;
-		"Level 4"
-		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
-			Global.LvlColors[Event Player.Level], True);
-		Abort;
-		"Level 5"
-		Create Icon(Event Player, Event Player.Local_Pos[Event Player.DelGenElements] + Up * 1.750, Flag, None,
-			Global.LvlColors[Event Player.Level], True);
+		playerIcon data
 	}
 }
 
@@ -1761,10 +1735,12 @@ rule("Reset Ability CDs sub")
 	actions
 	{
 		If(Event Player.PickedCD == True || Event Player.UpperLock == False);
-			Set Ability Cooldown(Event Player, Button(Ability 2), 0);
 			Set Ability Cooldown(Event Player, Button(Ability 1), 0);
 			Set Ability Cooldown(Event Player, Button(Ability 2), 0);
 			Set Ability Cooldown(Event Player, Button(Secondary Fire), 0);
+            Skip If(Hero Of(Event Player) == Hero(Doomfist), 2);
+            Set Ability Cooldown(Event Player, Button(Jump), 0);
+			Set Ability Cooldown(Event Player, Button(Crouch), 0);
 			Event Player.PickedCD = False;
 	}
 }
@@ -2530,6 +2506,9 @@ rule("Effect Create sub    -------------------------------   CUSTOMIZE")
 			Else If(Event Player.Effstate[Event Player.Effinitiate] == 10);
 				Create Effect(Event Player.Effvisible[Evaluate Once(Event Player.Effinitiate)] ? Empty Array : Event Player, Sphere, Color(
 					Turquoise), Event Player.Effpos[Event Player.Effinitiate], Event Player.Effrad[Event Player.Effinitiate], Visible To);
+			Else If(Event Player.Effstate[Event Player.Effinitiate] == 11);
+				Create Effect(Event Player, Sphere, Color(Orange), Event Player.Effpos[Event Player.Effinitiate],
+					Event Player.Effrad[Event Player.Effinitiate], None);
 			Else;
 				Abort If(Event Player.Effstate[Event Player.Effinitiate + True] != 9);
 				Create Beam Effect(Event Player, Bad Beam, Event Player.Effpos[Event Player.Effinitiate],
@@ -2548,9 +2527,9 @@ rule("Effect Create sub    -------------------------------   CUSTOMIZE")
 		End;
 		Modify Player Variable At Index(Event Player, Elements, False, Append To Array, Last Created Entity);
 		Abort If(Is True For Any(Event Player.Effstate[Event Player.Effinitiate], Current Array Element == 1 || (
-			Current Array Element > 6 && Current Array Element != 10)));
+			Current Array Element > 6 && Current Array Element != 10 && Current Array Element != 11)));
 		If(
-			Event Player.Effstate[Event Player.Effinitiate] > 1 && Event Player.Effstate[Event Player.Effinitiate] != 4 && Event Player.Effstate[Event Player.Effinitiate] != 10);
+			Event Player.Effstate[Event Player.Effinitiate] > 1 && Event Player.Effstate[Event Player.Effinitiate] != 4 && Event Player.Effstate[Event Player.Effinitiate] != 10 && Event Player.Effstate[Event Player.Effinitiate] != 11);
 			Abort If(Event Player.Efftim[Event Player.Effinitiate] == 11 && Event Player.Effstate[Event Player.Effinitiate] > 2);
 			Create In-World Text(Event Player.Effvisible[Evaluate Once(Event Player.Effinitiate)] ? Empty Array : Event Player, Custom String(
 				"{0}{1}{0}", Event Player.Efftim[Event Player.Effinitiate] < 0 ? Custom String("*") : Custom String(""),
@@ -2587,6 +2566,9 @@ rule("Effect Create sub    -------------------------------   CUSTOMIZE")
 				Y Component Of(Event Player.Effpos[Event Player.Effinitiate]))), False)), Absolute Value(
 				Event Player.Efftim[Event Player.Effinitiate]) == 11 ? 0.900 : 1.500, Clip Against Surfaces, Visible To and Position, Color(
 				White), Default Visibility);
+		Else If(Event Player.Effstate[Event Player.Effinitiate] == 11);
+			Create In-World Text(Event Player.Effvisible[Evaluate Once(Event Player.Effinitiate)] ? Empty Array : Event Player, Custom String(
+				"BOUNCY"), Event Player.Effpos[Event Player.Effinitiate], 1.300, Do Not Clip, Visible To, Color(White), Default Visibility);
 		Else;
 			Abort If(!Event Player.Efftim[Event Player.Effinitiate]);
 			Create In-World Text(Event Player.Effvisible[Evaluate Once(Event Player.Effinitiate)] ? Empty Array : Event Player,
@@ -2656,10 +2638,17 @@ rule("Effect Detect")
 			Break;
 			Call Subroutine(Black_Hole_Effect);
 			Break;
+			"Zipline"
 			disabled End;
+			disabled Break;
+			"Zipline 2"
 			disabled End;
+			disabled Break;
+			"Shootable"
 			disabled End;
-			disabled Call Subroutine(Shootable_Orb_Effect);
+			disabled Break;
+			"Bounce"
+			Call Subroutine(Bounce_Orb_Effect);
 			Break;
 		End;
 		Event Player.Effdetect = False;
@@ -2725,7 +2714,8 @@ rule("Orb Shoot Detect")
 	conditions
 	{
 		Event Player.CPData[8] == True;
-		Is Firing Primary(Event Player) == True;
+		(Is Firing Primary(Event Player) && !Is Using Ability 1(Event Player) && !Is Using Ability 2(Event Player) && !Is Firing Secondary(
+			Event Player)) == True;
 		"Disable to make it work inside of cp"
 		Distance Between(Position Of(Event Player), Event Player.CPData[3]) > Event Player.CPData[4] + 0.100;
 		Is True For Any(Event Player.Effpos, Current Array Element && (Event Player.Effstate[Current Array Index] == 10 || (
@@ -2795,6 +2785,22 @@ rule("Shootable Time Effect sub")
 		Event Player.Effvisible[Event Player.Effactual] = True;
 		Event Player.Effvisible[Count Of(Event Player.Efftype)] += Event Player.Efftim[Event Player.Effactual];
 		Call Subroutine(EffectLock);
+	}
+}
+
+rule("Bounce Orb Effect sub")
+{
+	event
+	{
+		Subroutine;
+		Bounce_Orb_Effect;
+	}
+
+	actions
+	{
+		Play Effect(Event Player, Sigma Hypersphere Implosion Sound, Color(White), Event Player, 69);
+		Apply Impulse(Event Player, Event Player.Efftim[Event Player.Effactual][0], Event Player.Efftim[Event Player.Effactual][1],
+			To World, Cancel Contrary Motion);
 	}
 }
 
@@ -4119,7 +4125,7 @@ rule("Effect Preview sub   |   Interact + Forwards / Backwards")
 
 	actions
 	{
-		Skip If(Event Player.LocalC[3], 6);
+		Skip If(Event Player.LocalC[3], 8);
 		Event Player.PreviewCP = False;
 		Start Camera(Event Player, (Event Player.LocalC[3] ? (
 			Event Player.Efftype[Event Player.LocalC[3] - True] ? Event Player.EffectPreview[Event Player.LocalC[3] - True] : Event Player.EffectPreview[Event Player.LocalC[3] - True] * Vector(
@@ -4130,6 +4136,7 @@ rule("Effect Preview sub   |   Interact + Forwards / Backwards")
 			True, False, True) + Vector(False, Max(Y Component Of(Eye Position(Event Player)), Y Component Of(
 			Event Player.EffectPreview[Event Player.LocalC[3] - True])), False)) : Event Player.EffectPreview, 10);
 		Create HUD Text(Event Player, Custom String(" \n Effect Details:\n {0}\n                ",
+			Event Player.Effstate[Event Player.LocalC[3] - True] == 11 ? Custom String("Bounces you in a\n    specific direction ") : (
 			Event Player.Effstate[Event Player.LocalC[3] - True] ? (
 			Event Player.Effstate[Event Player.LocalC[3] - True] == 1 ? Custom String("Death\n Kills you") : (Is True For Any(
 			Event Player.Effstate[Event Player.LocalC[3] - True], Current Array Element == 2 || Current Array Element == 10)
@@ -4170,13 +4177,18 @@ rule("Effect Preview sub   |   Interact + Forwards / Backwards")
 			"\n    Gives Empowered Punch") : Custom String("")) : (
 			Event Player.Effstate[Event Player.LocalC[3] - True] == 7 ? Custom String("Black Hole\n You fall towards it\n when close")
 			: Custom String("Zipline\n Press/Hold Jump\n to attach\n Jump/Crouch to detach"))))))) : Custom String(
-			"Time Change: {0}\n Changes Time upon\n Completion", Event Player.Efftim[Event Player.LocalC[3] - True] + 0.001)), Null, Null,
+			"Time Change: {0}\n Changes Time upon\n Completion", Event Player.Efftim[Event Player.LocalC[3] - True] + 0.001))), Null, Null,
 			Left, -7, Array(Color(Sky Blue), Color(Red), Color(White), Color(Lime Green), Color(Orange), Color(Orange), Color(Sky Blue),
-			Color(Gray), Color(Blue), Color(Blue), Color(Turquoise))[Event Player.Effstate[Event Player.LocalC[3] - True]], Null, Null,
-			String and Color, Default Visibility);
+			Color(Gray), Color(Blue), Color(Blue), Color(Turquoise), Color(Orange))[Event Player.Effstate[Event Player.LocalC[3] - True]],
+			Null, Null, String and Color, Default Visibility);
 		Event Player.LocalC[4] = Last Text ID;
+		Skip If(Event Player.Effstate[Event Player.LocalC[3] - True] == 11, 1);
 		Create Effect(Event Player.Effstate[Event Player.LocalC[3] - True] == 7 ? Event Player : Null, Sphere, Color(Black),
 			Event Player.EffectPreview[Event Player.LocalC[3] - True], Event Player.Effrad[Event Player.LocalC[3] - True],
+			Visible To Position and Radius);
+		Create Beam Effect(Event Player.Effstate[Event Player.LocalC[3] - True] == 11 ? Event Player : Null, Bad Beam,
+			Event Player.Effpos[Event Player.LocalC[3] - True],
+			Event Player.Effpos[Event Player.LocalC[3] - True] + Event Player.Efftim[Event Player.LocalC[3] - True][0] * 5, Color(Red),
 			Visible To Position and Radius);
 		Event Player.LocalC[5] = Last Created Entity;
 		Event Player.LocalC[3] += Event Player.LocalC[3] < Count Of(Event Player.EffectPreview) ? True : (Count Of(
