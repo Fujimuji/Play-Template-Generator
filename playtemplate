@@ -218,6 +218,7 @@ variables
 		20: CPcounter
 		21: CPcounterHUD
 		22: CPtime
+		23: IsPunching
 		26: Zipline
 		30: Mission
 		31: MissionTime
@@ -402,11 +403,11 @@ rule("MAP DATA")
 		Subroutine;
 		MapData1;
 	}
-
-	actions
-	{
-		first data
-	}
+    
+    actions
+    {
+    	first data
+    }
 }
 
 rule("MAP DATA SPLIT 1")
@@ -416,11 +417,11 @@ rule("MAP DATA SPLIT 1")
 		Subroutine;
 		MapData2;
 	}
-
-	actions
-	{
-		second data
-	}
+    
+    actions
+    {
+    	second data
+    }
 }
 
 rule("MAP DATA SPLIT 2")
@@ -430,11 +431,11 @@ rule("MAP DATA SPLIT 2")
 		Subroutine;
 		MapData3;
 	}
-
-	actions
-	{
-		third data
-	}
+    
+    actions
+    {
+    	third data
+    }
 }
 
 rule("GLOBAL HUD - LEVEL NAMES & COLORS & INITIATE MAP   ----   CUSTOMIZE")
@@ -1360,7 +1361,7 @@ rule("CP Clear / Fail")
 	{
 		Distance Between(Position Of(Event Player), Event Player.CPData[3]) > Event Player.CPData[4] + 0.100;
 		"Rocket Punch Grace   |   Disable to turn OFF"
-		(Is Firing Secondary(Event Player) || Event Player.Grace < 0.120) == True;
+		(Event Player.IsPunching || Event Player.Grace < 0.120) == True;
 		Event Player.Roaming == False;
 		Event Player.Shift == False;
 		Is On Ground(Event Player) == True;
@@ -1493,6 +1494,7 @@ rule("CP Clear Ending sub (optimizes Effect CP)")
 
 	actions
 	{
+		Event Player.UpperLock = False;
 		Call Subroutine(AbilityCDreset);
 		"Bullet Punch / Uppercut Cancel (6 actions)"
 		If(!Global.WSUpperCancelBulletPunch && !Is Button Held(Event Player, Button(Secondary Fire)) && !Is Button Held(Event Player,
@@ -1738,8 +1740,8 @@ rule("Reset Ability CDs sub")
 			Set Ability Cooldown(Event Player, Button(Ability 1), 0);
 			Set Ability Cooldown(Event Player, Button(Ability 2), 0);
 			Set Ability Cooldown(Event Player, Button(Secondary Fire), 0);
-            Skip If(Hero Of(Event Player) == Hero(Doomfist), 2);
-            Set Ability Cooldown(Event Player, Button(Jump), 0);
+			Skip If(Hero Of(Event Player) == Hero(Doomfist), 2);
+			Set Ability Cooldown(Event Player, Button(Jump), 0);
 			Set Ability Cooldown(Event Player, Button(Crouch), 0);
 			Event Player.PickedCD = False;
 	}
@@ -1795,7 +1797,7 @@ rule("Rocket Punch Grace Period")
 
 	conditions
 	{
-		Is Firing Secondary(Event Player) == True;
+		Event Player.IsPunching == True;
 	}
 
 	actions
@@ -1803,7 +1805,7 @@ rule("Rocket Punch Grace Period")
 		Event Player.Cheese = Is Button Held(Event Player, Button(Primary Fire));
 		Event Player.Grace = 0.119;
 		Chase Player Variable At Rate(Event Player, Grace, 0.500, 0.390, None);
-		Wait Until(!Is Firing Secondary(Event Player) || !Event Player.Grace, 99999);
+		Wait Until(!Event Player.IsPunching || !Event Player.Grace, 99999);
 		If(Event Player.Grace > 0.016 && !(Is Button Held(Event Player, Button(Primary Fire)) && !Event Player.Cheese));
 			Chase Player Variable At Rate(Event Player, Grace, False, True, None);
 			Event Player.EmpowerStats[4] = False;
@@ -2181,7 +2183,7 @@ rule("Mission Seismic Slam")
 
 	conditions
 	{
-		(Is Using Ability 1(Event Player) || Ability Cooldown(Event Player, Button(Ability 1))) >= 1;
+		(Is Using Ability 1(Event Player) || Ability Cooldown(Event Player, Button(Ability 1)) >= 1) == True;
 	}
 
 	actions
@@ -2702,7 +2704,7 @@ rule("Time / Ability Effect sub")
 	}
 }
 
-rule("Orb Shoot Detect")
+disabled rule("Orb Shoot Detect")
 {
 	event
 	{
@@ -3869,7 +3871,7 @@ rule("Interact")
 			Skip If(Event Player.CPData[12] && !Event Player.CPData[13], True);
 			Call Subroutine(SwitchDiverge);
 			Call Subroutine(WhileInteract2);
-		Else If(Event Player.CPData[8] && Z Component Of(Throttle Of(Event Player)));
+		Else If(Event Player.CPData[8] && Z Component Of(Throttle Of(Event Player)) && !Is Firing Secondary(Event Player));
 			Call Subroutine(PreviewEffect);
 			Call Subroutine(WhileInteract2);
 		End;
@@ -3923,8 +3925,8 @@ rule("While Interact 2 sub")
 		Wait(0.048, Ignore Condition);
 		Loop If(Is Button Held(Event Player, Button(Primary Fire)) || Is Button Held(Event Player, Button(Ultimate)) || Is Button Held(
 			Event Player, Button(Jump)) || Is Button Held(Event Player, Button(Crouch)) || Is Button Held(Event Player, Button(Melee))
-			|| Is Button Held(Event Player, Button(Reload)) || X Component Of(Throttle Of(Event Player)) || Z Component Of(Throttle Of(
-			Event Player)));
+			|| Is Button Held(Event Player, Button(Reload)) || X Component Of(Throttle Of(Event Player)) || (Z Component Of(Throttle Of(
+			Event Player)) && !Is Firing Secondary(Event Player)));
 	}
 }
 
@@ -4778,6 +4780,29 @@ rule("Screenshake Fix")
 	actions
 	{
 		Set Status(Event Player, Null, Invincible, 99999);
+	}
+}
+
+rule("Punch Detection")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is Firing Secondary(Event Player) == True;
+	}
+
+	actions
+	{
+		Event Player.IsPunching = True;
+		Wait Until(!Is Button Held(Event Player, Button(Secondary Fire)) || Is Button Held(Event Player, Button(Primary Fire))
+			|| !Is Firing Secondary(Event Player), 1.600);
+		Event Player.IsPunching = False;
 	}
 }
 
